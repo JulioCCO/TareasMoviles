@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Eliga el tipo de almacenamiento:"
+        android:textAlignment="viewStart"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/btn_local"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="botonAlmacenamientoLocal"
+        android:text="Local" />
+
+    <Button
+        android:id="@+id/btn_externa"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="botonAlmacenamientoExterno"
+        android:text="Externa" />
+</LinearLayout>
