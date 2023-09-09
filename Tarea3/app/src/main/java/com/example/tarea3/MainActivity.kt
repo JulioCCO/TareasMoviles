@@ -113,7 +113,6 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-
     // mostrar el list view con los eventos
     fun listViewEventos() {
 
@@ -139,5 +138,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun escribirArchivo(view: View) {
+
+        val filename = "archivo_interno.txt"
+        val contenido = "Este es un ejemplo de escritura en un archivo interno."
+
+        try {
+            val outputStreamWriter = OutputStreamWriter(openFileOutput(filename, Context.MODE_PRIVATE))
+            outputStreamWriter.write(contenido)
+            outputStreamWriter.close()
+            //Toast.makeText(this@MainActivity, "Done", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
 }
