@@ -18,13 +18,19 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 
 class MainActivity : AppCompatActivity() {
 
-    private var eventos = mutableListOf<Evento>()
+    //private var eventos = mutableListOf<Evento>()
+    var eventos = mutableListOf(
+        Evento("2023-09-11", "Event 1", "Description event 1" ),
+        Evento("2023-09-12", "Event 2", "Description event 2")
+    )
+    private var eventosList: List<Evento>? = null
     private lateinit var listView: ListView
     private lateinit var adapter: ArrayAdapter<String>
 
@@ -42,11 +48,10 @@ class MainActivity : AppCompatActivity() {
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = "Mi Barra de Acción"
+        supportActionBar?.title = "ACTION BAR"
 
         listViewEventos()
     }
-
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_toolbar, menu)
@@ -125,6 +130,7 @@ class MainActivity : AppCompatActivity() {
             val nombre: EditText = dialogView.findViewById(R.id.editTextNombre)
             val descripcion: EditText = dialogView.findViewById(R.id.editTextDescripcion)
             val simpleCalendarView = findViewById<View>(R.id.calendarView) as CalendarView
+
             val fecha: String = simpleCalendarView.date.toString()
 
             eventos.add(Evento(fecha,nombre.toString(),descripcion.toString()))
@@ -190,10 +196,8 @@ class MainActivity : AppCompatActivity() {
     fun escribirArchivoInterno(filename: String) {
         try {
             val outputStreamWriter = OutputStreamWriter(openFileOutput(filename, Context.MODE_PRIVATE))
-            for (event in eventos) {
-                val json = gson.toJson(event)
-                outputStreamWriter.write(json+ "\n")
-            }
+            val eventosJson = gson.toJson(eventos)
+            outputStreamWriter.write(eventosJson)
             outputStreamWriter.close()
             Toast.makeText(this@MainActivity, "Escritura correcta", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
@@ -207,15 +211,22 @@ class MainActivity : AppCompatActivity() {
             val fileInputStream = openFileInput(filename)
             val inputStreamReader = InputStreamReader(fileInputStream)
             val bufferedReader = BufferedReader(inputStreamReader)
+            val contenido = StringBuilder()
             var linea: String? = bufferedReader.readLine()
-
             while (linea != null) {
-                val evento = gson.fromJson(linea, Evento::class.java)
-                eventos.add(evento)
+                contenido.append(linea).append("\n")
                 linea = bufferedReader.readLine()
             }
-
             bufferedReader.close()
+            val eventosJson = contenido.toString()
+
+            // Deserialize the JSON back to a list of Evento objects
+            val eventosList: List<Evento> = gson.fromJson(eventosJson, object : TypeToken<List<Evento>>() {}.type)
+
+            // Update your existing eventos list with the deserialized data
+            eventos.clear() // Clear the existing list if needed
+            eventos.addAll(eventosList)
+
             Toast.makeText(this@MainActivity, "Lectura correcta $eventos", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
