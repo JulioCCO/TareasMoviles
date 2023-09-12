@@ -24,6 +24,9 @@ import androidx.appcompat.widget.Toolbar
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileOutputStream
+import java.io.FileReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
@@ -34,7 +37,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private var eventos = mutableListOf<Evento>()
-
+    private var eventosNombres = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
 
     private val gson = Gson()
@@ -139,7 +142,8 @@ class MainActivity : AppCompatActivity() {
         val calendarView: CalendarView = dialogView.findViewById(R.id.calendarView)
 
         calendarView.setOnDateChangeListener { _, anio, mes, dia ->
-            fecha = "$dia/$mes/$anio"
+
+            fecha = "$dia/${mes +1}/$anio"
         }
 
         btnAceptar.setOnClickListener {
@@ -150,6 +154,7 @@ class MainActivity : AppCompatActivity() {
             val ETdescripcion: EditText = dialogView.findViewById(R.id.editTextDescripcion)
 
             eventos.add(Evento(fecha,ETnombre.text.toString(),ETdescripcion.text.toString()))
+            eventosNombres.add(ETnombre.text.toString())
             adapter.notifyDataSetChanged()
             val sharedPreferences: SharedPreferences = getSharedPreferences("MiPref", Context.MODE_PRIVATE)
             val storageType: Boolean = sharedPreferences.getBoolean("storageType", true)
@@ -159,7 +164,7 @@ class MainActivity : AppCompatActivity() {
 
             }else{
                 // agarrar la externa y escribir Eventos
-
+                escribirExterno("archivo_externo.txt")
             }
 
             dialog.dismiss()
@@ -186,13 +191,14 @@ class MainActivity : AppCompatActivity() {
 
         }else{
             // agarrar la externa y cargar Eventos
+            leerExterno("archivo_interno.txt")
 
         }
 
         val listView: ListView = findViewById(R.id.listView_Eventos)
 
         // Crea un ArrayAdapter para mostrar los nombres en el ListView
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, eventos.map { it.nombre })
+        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1,eventosNombres)
 
         // Asocia el ArrayAdapter con el ListView
         listView.adapter = adapter
@@ -200,7 +206,7 @@ class MainActivity : AppCompatActivity() {
         // Configura un escuchador para el clic en los elementos del ListView
         listView.onItemClickListener = object : AdapterView.OnItemClickListener {
             override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val eventoSeleccionado = eventos[position].nombre
+                val eventoSeleccionado = eventosNombres[position]
                 callActivity2(eventoSeleccionado)
                 // Muestra un Toast con el nombre seleccionado
                 Toast.makeText(this@MainActivity, "Nombre seleccionado: $eventoSeleccionado",
@@ -231,7 +237,19 @@ class MainActivity : AppCompatActivity() {
             val eventosJson = gson.toJson(eventos)
             outputStreamWriter.write(eventosJson)
             outputStreamWriter.close()
-            Toast.makeText(this@MainActivity, "Escritura correcta", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@MainActivity, "Escritura interna correcta", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    fun escribirExterno(filename: String) {
+
+        try {
+            val outputStream = FileOutputStream(filename)
+            val eventosJson = gson.toJson(eventos)
+            outputStream.write(eventosJson.toByteArray())
+            outputStream.close()
+            Toast.makeText(this@MainActivity, "Escritura externa correcta", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -258,10 +276,39 @@ class MainActivity : AppCompatActivity() {
             // Update your existing eventos list with the deserialized data
             eventos.clear() // Clear the existing list if needed
             eventos.addAll(eventosList)
+            eventosNombres.clear()
+            eventosNombres.addAll(eventosList.map { it.nombre })
             Toast.makeText(this@MainActivity, "Lectura correcta", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    fun leerExterno(filename: String){
+
+        try {
+            val bufferedReader = BufferedReader(FileReader(filename))
+            val stringBuilder = StringBuilder()
+            var line: String?
+            while (bufferedReader.readLine().also { line = it } != null) {
+                stringBuilder.append(line)
+            }
+            bufferedReader.close()
+            val content = stringBuilder.toString()
+            val eventosJson = content
+
+            // Deserialize the JSON back to a list of Evento objects
+            val eventosList: List<Evento> = gson.fromJson(eventosJson, object : TypeToken<List<Evento>>() {}.type)
+
+            // Update your existing eventos list with the deserialized data
+            eventos.clear() // Clear the existing list if needed
+            eventos.addAll(eventosList)
+            eventosNombres.clear()
+            eventosNombres.addAll(eventosList.map { it.nombre })
+            Toast.makeText(this@MainActivity, "Lectura externa correcta", Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }
