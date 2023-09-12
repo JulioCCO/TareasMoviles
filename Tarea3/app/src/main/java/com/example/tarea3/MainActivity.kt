@@ -1,6 +1,7 @@
 package com.example.tarea3
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,9 +12,12 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CalendarView
+import android.widget.CalendarView.OnDateChangeListener
 import android.widget.EditText
 import android.widget.ListView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -22,26 +26,23 @@ import com.google.gson.reflect.TypeToken
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+
 
 class MainActivity : AppCompatActivity() {
 
-    //private var eventos = mutableListOf<Evento>()
-    var eventos = mutableListOf(
-        Evento("2023-09-11", "Event 1", "Description event 1" ),
-        Evento("2023-09-12", "Event 2", "Description event 2")
-    )
-    private var eventosList: List<Evento>? = null
-    private lateinit var listView: ListView
+    private var eventos = mutableListOf<Evento>()
+
     private lateinit var adapter: ArrayAdapter<String>
 
     private val gson = Gson()
+
+    private lateinit var startForResult: ActivityResultLauncher<Intent>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        listView = findViewById(R.id.listView_Eventos)
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, eventos.map { it.nombre })
-        listView.adapter =adapter
 
         selectStorage()
 
@@ -51,6 +52,16 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.title = "ACTION BAR"
 
         listViewEventos()
+
+        startForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){ result ->
+            if(result.resultCode == RESULT_OK){
+                val data: Intent? = result.data
+                val resultado = data?.getStringExtra("resultado")
+                Toast.makeText(this@MainActivity, "Resultado obtenido: $resultado", Toast.LENGTH_SHORT).show()
+            }else{
+                Toast.makeText(this@MainActivity, "Resultado fallido:", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -78,7 +89,6 @@ class MainActivity : AppCompatActivity() {
         if (mostrarDialogo) {
             mostrarDialogTipoAlmacenamiento()
         }
-
     }
 
     private fun mostrarDialogTipoAlmacenamiento() {
@@ -116,24 +126,31 @@ class MainActivity : AppCompatActivity() {
 
     // Funcion para mostrar el dialogo de los eventos
     private fun mostrarDialog() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog, null)
 
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog, null)
+        var fecha: String = ""
         val builder = AlertDialog.Builder(this)
         builder.setView(dialogView)
         val dialog = builder.create()
 
         val btnAceptar: Button = dialogView.findViewById(R.id.btn_aceptar)
+
+        // Busca el CalendarView dentro del layout inflado
+        val calendarView: CalendarView = dialogView.findViewById(R.id.calendarView)
+
+        calendarView.setOnDateChangeListener { _, anio, mes, dia ->
+            fecha = "$dia/$mes/$anio"
+        }
+
         btnAceptar.setOnClickListener {
 
             // Almacenar un valor en SharedPreferences
 
-            val nombre: EditText = dialogView.findViewById(R.id.editTextNombre)
-            val descripcion: EditText = dialogView.findViewById(R.id.editTextDescripcion)
-            val simpleCalendarView = findViewById<View>(R.id.calendarView) as CalendarView
+            val ETnombre: EditText = dialogView.findViewById(R.id.editTextNombre)
+            val ETdescripcion: EditText = dialogView.findViewById(R.id.editTextDescripcion)
 
-            val fecha: String = simpleCalendarView.date.toString()
-
-            eventos.add(Evento(fecha,nombre.toString(),descripcion.toString()))
+            eventos.add(Evento(fecha,ETnombre.text.toString(),ETdescripcion.text.toString()))
+            adapter.notifyDataSetChanged()
             val sharedPreferences: SharedPreferences = getSharedPreferences("MiPref", Context.MODE_PRIVATE)
             val storageType: Boolean = sharedPreferences.getBoolean("storageType", true)
             if(storageType){
@@ -144,7 +161,6 @@ class MainActivity : AppCompatActivity() {
                 // agarrar la externa y escribir Eventos
 
             }
-            //adapter.notifyDataSetChanged()
 
             dialog.dismiss()
         }
@@ -172,12 +188,11 @@ class MainActivity : AppCompatActivity() {
             // agarrar la externa y cargar Eventos
 
         }
-        //val paises = arrayOf("Costa Rica", "Nigeria", "Estados Unidos", "China", "Brasil")
 
         val listView: ListView = findViewById(R.id.listView_Eventos)
 
         // Crea un ArrayAdapter para mostrar los nombres en el ListView
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, eventos.map { it.nombre })
+        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, eventos.map { it.nombre })
 
         // Asocia el ArrayAdapter con el ListView
         listView.adapter = adapter
@@ -186,13 +201,30 @@ class MainActivity : AppCompatActivity() {
         listView.onItemClickListener = object : AdapterView.OnItemClickListener {
             override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val eventoSeleccionado = eventos[position].nombre
-
+                callActivity2(eventoSeleccionado)
                 // Muestra un Toast con el nombre seleccionado
                 Toast.makeText(this@MainActivity, "Nombre seleccionado: $eventoSeleccionado",
             Toast.LENGTH_SHORT).show()
             }
         }
     }
+
+    fun callActivity2(nombreEvento: String){
+        val intent = Intent(this, MainActivity2::class.java)
+
+        for (evento in eventos){
+            if(evento.nombre==nombreEvento) {
+
+                intent.putExtra("nombre", evento.nombre)
+                intent.putExtra("descripcion", evento.descripcion)
+                intent.putExtra("fecha", evento.fecha)
+            }else{
+                intent.putExtra("error", true)
+            }
+        }
+        startForResult.launch(intent)
+    }
+
     fun escribirArchivoInterno(filename: String) {
         try {
             val outputStreamWriter = OutputStreamWriter(openFileOutput(filename, Context.MODE_PRIVATE))
@@ -226,8 +258,7 @@ class MainActivity : AppCompatActivity() {
             // Update your existing eventos list with the deserialized data
             eventos.clear() // Clear the existing list if needed
             eventos.addAll(eventosList)
-
-            Toast.makeText(this@MainActivity, "Lectura correcta $eventos", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@MainActivity, "Lectura correcta", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
         }
