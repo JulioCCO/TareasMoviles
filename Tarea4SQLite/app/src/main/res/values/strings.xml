@@ -1,0 +1,17 @@
+<resources>
+
+    <string name="app_name">Tarea4SQLite</string>
+    <string name="sqlite_farmacia">SQLite Farmacia</string>
+    <string name="add_producto">add producto</string>
+    <string name="agregar">Agregar</string>
+    <string name="nombre">Nombre:</string>
+    <string name="agregar_articulo"><u>Agregar articulo</u></string>
+    <string name="descripcion">Descripcion:</string>
+    <string name="aceptar">Aceptar</string>
+    <string name="salir">Salir</string>
+    <string name="editar">Editar</string>
+    <string name="eliminar">Eliminar</string>
+    <string name="lista_productos">Lista productos</string>
+    <string name="editar_articulo"><u>Editar Articulo</u></string>
+
+</resources>
